@@ -1,4 +1,1 @@
-MachineID: 41 | Name: d | Status: d | RentPerDay: 11
-MachineID: 2 | Name: 2 | Status: e | RentPerDay: 1
-MachineID: 3 | Name: f | Status: fff | RentPerDay: -2
-MachineID: 1 | Name: digger | Status: rent | RentPerDay: 350
+
