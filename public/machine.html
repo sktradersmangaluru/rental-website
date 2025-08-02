@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Machines</title>
+  <link rel="stylesheet" href="style.css" />
+  </head>
+<body> 
+<section>
+    <h1>Machines</h1>
+    <h2>Add Machine</h2>
+    <form id="machineForm">
+      <input type="text" placeholder="MachineID" name="MachineID" required />
+      <input type="text" placeholder="Name" name="Name" required />
+      <input type="text" placeholder="Status" name="Status" required />
+      <input type="number" name="RentPerDay" placeholder="Rent Per Day" required />
+      <button type="submit">Add Machine</button>
+    </form>
+    <ul id="machineList"></ul>
+
+<h3>Edit Machine</h3>
+<form id="editMachineForm" onsubmit="submitMachineEdit(event)">
+  <input type="text" id="editMachineID" placeholder="ID" readonly />
+  <input type="text" id="editMachineName" placeholder="Name" required />
+  <input type="text" id="editMachineStatus" placeholder="Status" required />
+  <input type="number" id="editMachineRent" placeholder="Rent Per Day" required />
+  <button type="submit">Save Changes</button>
+</form>
+</section>
+ <script>
+    async function loadMachines() {
+      const res = await fetch('/api/machines');
+      const data = await res.json();
+      const list = document.getElementById('machineList');
+      list.innerHTML = '';
+
+      data.forEach(machine => {
+        const li = document.createElement('li');
+
+        const span = document.createElement('span');
+        span.textContent = `Machine ${machine.ID}: ${machine.Name} - ${machine.Status} @ ₹${machine.RentPerDay}/day`;
+
+        const btn = document.createElement('button');
+        btn.textContent = 'Edit';
+	btn.addEventListener('click', () => {
+  	localStorage.setItem('editMachine', JSON.stringify(machine));
+  	window.open('edit-machine.html', '_blank', 'width=500,height=400');
+	});
+
+        li.appendChild(span);
+        //li.appendChild(btn);
+        list.appendChild(li);
+      });
+    }
+
+    function editMachine(machine) {
+      document.getElementById('editMachineID').value = machine.ID;
+      document.getElementById('editMachineName').value = machine.Name;
+      document.getElementById('editMachineStatus').value = machine.Status;
+      document.getElementById('editMachineRent').value = machine.RentPerDay;
+    }
+
+    async function submitMachineEdit(e) {
+      e.preventDefault();
+
+      const updated = {
+        ID: document.getElementById('editMachineID').value,
+        Name: document.getElementById('editMachineName').value,
+        Status: document.getElementById('editMachineStatus').value,
+        RentPerDay: document.getElementById('editMachineRent').value
+      };
+
+      await fetch('/api/machines', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated)
+      });
+
+      loadMachines();
+      document.getElementById('editMachineForm').reset();
+    }
+
+  
+
+document.getElementById('machineForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const form = e.target;
+      await fetch('/api/machines', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.fromEntries(new FormData(form)))
+      });
+      form.reset();
+      loadMachines();
+    });
+  // Initial load
+  loadMachines();
+  </script>
+</body>
+</html>

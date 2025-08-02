@@ -1,0 +1,61 @@
+<!-- edit-machine.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit Machine</title>
+</head>
+<body>
+  <h2>Edit Machine</h2>
+  <form id="editMachineForm">
+    <input type="hidden" id="editMachineID" />
+    <label>Name:</label><br>
+    <input type="text" id="editMachineName" required><br><br>
+    
+    <label>Status:</label><br>
+    <select id="editMachineStatus" required>
+      <option value="Available">Available</option>
+      <option value="Rented">Rented</option>
+    </select><br><br>
+    
+    <label>Rent Per Day:</label><br>
+    <input type="number" id="editMachineRent" required><br><br>
+    
+    <button type="submit">Save</button>
+  </form>
+
+  <script>
+    // Load data from localStorage
+    const machine = JSON.parse(localStorage.getItem('editMachine'));
+    if (machine) {
+      document.getElementById('editMachineID').value = machine.ID;
+      document.getElementById('editMachineName').value = machine.Name;
+      document.getElementById('editMachineStatus').value = machine.Status;
+      document.getElementById('editMachineRent').value = machine.RentPerDay;
+    }
+
+    document.getElementById('editMachineForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const updated = {
+        ID: document.getElementById('editMachineID').value,
+        Name: document.getElementById('editMachineName').value,
+        Status: document.getElementById('editMachineStatus').value,
+        RentPerDay: document.getElementById('editMachineRent').value
+      };
+
+      const res = await fetch('/api/machines', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated)
+      });
+
+      if (res.ok) {
+        alert('Machine updated successfully');
+        window.close();
+      } else {
+        alert('Failed to update');
+      }
+    });
+  </script>
+</body>
+</html>

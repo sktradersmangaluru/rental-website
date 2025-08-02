@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rental Machine Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>Rental Machine Tracker</h1>
+   <nav>
+    <a href="index.html">Dashboard</a>
+    <a href="machine.html">Machines</a>
+    <a href="customers.html">Customers</a>
+  </nav>
+  <section>
+    <h2>Assign Machine</h2>
+    <form id="rentalForm">
+  	<!-- RentalID field removed, will be generated server-side -->
+  	<select name="MachineID" id="machineSelect" required></select>
+ 	 <select name="CustomerID" id="customerSelect" required></select>
+  	<input type="date" placeholder="Start Date" name="Start" required />
+  	<input type="date" placeholder="End Date" name="End" />
+        <input type="number" placeholder="Number of Machine" name="Count" required />
+  	<button type="submit">Assign</button>
+    </form>
+    <ul id="rentalList"></ul>
+  </section>
+ <section>
+    <h2>Add Customer</h2>
+    <form id="customerForm">
+      <input type="text" placeholder="CustomerID" name="CustomerID" required />
+      <input type="text" placeholder="Name" name="Name" required />
+      <input type="text" placeholder="Phone" name="Phone" required />
+      <button type="submit">Add Customer</button>
+    </form>
+    <ul id="customerList"></ul>
+  </section>
+
+  <script>
+    async function loadList(url, elementId) {
+  const res = await fetch(url);
+  const data = await res.json();
+	//console.log(data)
+  const list = document.getElementById(elementId);
+  list.innerHTML = '';
+  data.forEach(item => {
+    const li = document.createElement('li');
+
+    // Friendly display for different item types
+    if (item.MachineID && item.CustomerID) {
+      // It's a rental record   
+      var machineName = getMachineNameById(item.MachineID);
+//console.log(machineName);
+      const customerName = getCustomerNameById(item.CustomerID);
+//console.log(customerName)
+      li.textContent = `Rental #${item.RentalID}: Machine ${item.MachineID} → Customer ${item.CustomerID} (${item.Start} to ${item.End}) TOTAL:<<${item.Count}>>`;
+	const btn = document.createElement('button');
+        btn.textContent = 'Edit';
+        btn.onclick = () => openRentalEdit(item);
+        //li.appendChild(btn);
+        list.appendChild(li);
+    }
+ else if (item.CustomerID && item.Name) {
+      // It's a customer
+      li.textContent = `Customer ${item.CustomerID}: ${item.Name} - ${item.Phone}`;
+    } else {
+      li.textContent = 'Unknown item';
+    }
+
+    list.appendChild(li);
+  });
+}
+
+
+    document.getElementById('customerForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const form = e.target;
+      await fetch('/api/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.fromEntries(new FormData(form)))
+      });
+      form.reset();
+      loadList('/api/customers', 'customerList');
+    });
+
+    document.getElementById('rentalForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const form2 = e.target;
+      await fetch('/api/rentals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.fromEntries(new FormData(form2)))
+      });
+      form2.reset();
+      loadList('/api/rentals', 'rentalList');
+	
+    });
+
+async function populateDropdowns() {
+  const machines = await (await fetch('/api/machines')).json();
+  const customers = await (await fetch('/api/customers')).json();
+
+  const machineSelect = document.getElementById('machineSelect');
+  machineSelect.innerHTML = machines.map(m => `<option value="${m.MachineID}">${m.MachineID} - ${m.Name}</option>`).join('');
+
+  const customerSelect = document.getElementById('customerSelect');
+  customerSelect.innerHTML = customers.map(c => `<option value="${c.CustomerID}">${c.CustomerID} - ${c.Name}</option>`).join('');
+}
+async function getCustomerNameById(id) {
+    const customers = await (await fetch('/api/customers')).json();
+    const c = customers.find(c => c.CustomerID == id);
+    return c.Name.toString();
+  }
+async function getMachineNameById(id) {
+    const machines = await (await fetch('/api/machines')).json();
+	//console.log(machines)
+    const m = machines.find(m => m.MachineID == id);
+//console.log(m.Name)
+    return m.Name.toString();
+  }
+function openRentalEdit(rental) {
+  document.getElementById('editRentalID').value = rental.RentalID;
+  document.getElementById('editStart').value = rental.Start;
+  document.getElementById('editEnd').value = rental.End;
+
+  // Populate dropdowns
+  Promise.all([
+    fetch('/api/machines').then(res => res.json()),
+    fetch('/api/customers').then(res => res.json())
+  ]).then(([machines, customers]) => {
+    const machineSelect = document.getElementById('editMachineID');
+    machineSelect.innerHTML = machines.map(m =>
+      `<option value="${m.ID}" ${m.ID == rental.MachineID ? 'selected' : ''}>${m.Name}</option>`
+    ).join('');
+
+    const customerSelect = document.getElementById('editCustomerID');
+    customerSelect.innerHTML = customers.map(c =>
+      `<option value="${c.ID}" ${c.ID == rental.CustomerID ? 'selected' : ''}>${c.Name}</option>`
+    ).join('');
+
+    document.getElementById('editRentalModal').style.display = 'block';
+  });
+}
+function closeRentalModal() {
+  document.getElementById('editRentalModal').style.display = 'none';
+}
+
+
+    // Initial load
+    loadList('/api/machines', 'machineList');
+    loadList('/api/customers', 'customerList');
+    loadList('/api/rentals', 'rentalList');
+    populateDropdowns();
+    
+
+  </script>
+<div id="editRentalModal" style="display:none; position:fixed; top:20%; left:30%; background:white; border:1px solid #ccc; padding:20px;">
+  <h3>Edit Rental</h3>
+  <form id="editRentalForm">
+    <input type="hidden" id="editRentalID" />
+    <label>Machine</label>
+    <select id="editMachineID"></select><br />
+    <label>Customer</label>
+    <select id="editCustomerID"></select><br />
+    <label>Start Date</label>
+    <input type="date" id="editStart" required><br />
+    <label>End Date</label>
+    <input type="date" id="editEnd" required><br />
+    <button type="submit">Save</button>
+    <button type="button" onclick="closeRentalModal()">Cancel</button>
+  </form>
+</div>
+</body>
+</html>
